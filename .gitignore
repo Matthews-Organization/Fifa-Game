@@ -1,0 +1,104 @@
+#-------------------------------------------------------------------------
+# Unreal Engine Standard GitIgnore
+#-------------------------------------------------------------------------
+
+# Compiled Binaries and Build Outputs
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+Script/
+EncryptedPak/
+
+# Ignore the entire .vs folder (Visual Studio private settings)
+.vs/
+
+# Visual Studio / IDE Generated Files
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.layout
+*.swp
+*.DS_Store
+*.opendb
+*.db
+
+###################################
+# JetBrains Rider Generated Files #
+###################################
+# Cache Directory
+.idea
+
+# Solution and Project Files
+*.sln
+*.csproj
+*.sln.DotSettings
+*.sln.DotSettings.user
+
+# Specific File Extensions to Ignore
+*.o
+*.obj
+*.pdb
+*.dll
+*.exe
+*.log
+*.tmp
+*.bak
+*.orig
+*.swp
+
+# Don't ignore the project file itself!
+!*.uproject
+
+# Plugins - Ignore their binaries and intermediate files too
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
+
+#-------------------------------------------------------------------------
+# Source Control for Assets (LFS handled elsewhere, but ignore these)
+#-------------------------------------------------------------------------
+
+# Metadata files created by some OS/Tools
+Thumbs.db
+desktop.ini
+
+#-------------------------------------------------------------------------
+# FMOD Integration: Keeping only the essentials
+#-------------------------------------------------------------------------
+
+# 1. Ignore the Plugin's auto-generated junk
+Plugins/FMODStudio/Intermediate/
+Plugins/FMODStudio/Docs/
+Plugins/FMODStudioNiagara/Intermediate/
+
+# 2. IMPORTANT: Un-ignore the folders so Git can see the files inside
+!Plugins/FMODStudio/Binaries/
+!Plugins/FMODStudio/Binaries/Win64/
+!Plugins/FMODStudioNiagara/Binaries/
+!Plugins/FMODStudioNiagara/Binaries/Win64/
+
+# 3. Block everything in these folders by default
+Plugins/FMODStudio/Binaries/Win64/*
+Plugins/FMODStudioNiagara/Binaries/Win64/*
+
+# 4. ...BUT force-include the necessary precompiled libraries
+!Plugins/FMODStudio/Binaries/Win64/*.lib
+!Plugins/FMODStudio/Binaries/Win64/*.dll
+!Plugins/FMODStudioNiagara/Binaries/Win64/*.lib
+!Plugins/FMODStudioNiagara/Binaries/Win64/*.dll
+
+# 5. Explicitly ignore the huge Debug Symbols
+Plugins/FMODStudio/Binaries/Win64/*.pdb
+Plugins/FMODStudioNiagara/Binaries/Win64/*.pdb
+
+
+#-------------------------------------------------------------------------
+# OPTIONAL: Built Data
+#-------------------------------------------------------------------------
+# If you are working ALONE, you can ignore BuiltData to save space. 
+# If working in a TEAM, comment this out so others see your lighting builds.
+# *_BuiltData.uasset
