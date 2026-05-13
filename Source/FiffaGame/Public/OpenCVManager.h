@@ -4,6 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+
+#include "PreOpenCVHeaders.h"
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/videoio.hpp>
+#include "PostOpenCVHeaders.h"
+
 #include "OpenCVManager.generated.h"
 
 UCLASS()
@@ -24,4 +32,8 @@ public:
     virtual void Tick(float DeltaTime) override;
 
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+private:
+	cv::VideoCapture Camera;
+	cv::VideoCapture Camera2;
+	cv::Mat Frame;
 };

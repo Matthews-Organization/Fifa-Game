@@ -3,17 +3,6 @@
 
 #include "OpenCVManager.h"
 
-#include "PreOpenCVHeaders.h"
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/videoio.hpp>
-#include "PostOpenCVHeaders.h"
-
-cv::VideoCapture Camera;
-cv::VideoCapture Camera2;
-cv::Mat Frame;
-
 // Sets default values
 AOpenCVManager::AOpenCVManager()
 {
