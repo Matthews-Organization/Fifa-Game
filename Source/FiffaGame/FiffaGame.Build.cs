@@ -18,9 +18,7 @@ public class FiffaGame : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate",
-			"OpenCV",
-			"OpenCVHelper"
+			"Slate"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
