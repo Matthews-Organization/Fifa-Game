@@ -24,16 +24,23 @@ public:
 	AOpenCVManager();
 
 protected:
-    // Called when the game starts or when spawned
-    virtual void BeginPlay() override;
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
 
 public:
-    // Called every frame
-    virtual void Tick(float DeltaTime) override;
+	// Called every frame
+	virtual void Tick(float DeltaTime) override;
 
-    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 private:
+	//Our Two Cams
 	cv::VideoCapture Camera;
 	cv::VideoCapture Camera2;
+	//2 Frames for the two cams
 	cv::Mat Frame;
+	cv::Mat Frame2;
+	
+	bool DetectBall(cv::Mat& input, cv::Point2f& outCenter, float& outRadius);
+	//LATER BRINGS
+	//Speed Vector
 };
