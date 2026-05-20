@@ -40,7 +40,18 @@ private:
 	cv::Mat Frame;
 	cv::Mat Frame2;
 	
+	
+
 	bool DetectBall(cv::Mat& input, cv::Point2f& outCenter, float& outRadius);
+	
+	
+	int previous_cx = -1;
+	int previous_cy =  -1;
+	double PrevTime = 0.0;
+	float speed = 0.0f;
+	
+	void trackBallSpeed(cv::Point2f centre,float radius, float realBallDiameterCentimeter);  
+	
 	//LATER BRINGS
 	//Speed Vector
 };

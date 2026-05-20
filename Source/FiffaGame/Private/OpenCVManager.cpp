@@ -59,6 +59,8 @@ void AOpenCVManager::Tick(float DeltaTime)
         {
             UE_LOG(LogTemp, Warning,
                 TEXT("Camera1 ball detected at: %f, %f | Radius: %f"), center.x, center.y, radius);
+            
+            trackBallSpeed(center, radius,22.8f);
         }
     }
     
@@ -72,6 +74,8 @@ void AOpenCVManager::Tick(float DeltaTime)
             UE_LOG(LogTemp, Warning,
                 TEXT("Camera2 ball detected at: %f, %f | Radius: %f"), center.x, center.y, radius);
         }
+        
+        
     }
     
     //Old Log data from getting OpenCV to init just test stuff DELETE LATER
@@ -148,6 +152,50 @@ bool AOpenCVManager::DetectBall(cv::Mat& input, cv::Point2f& outCenter, float& o
     }
 
     return false;
+}
+
+void AOpenCVManager::trackBallSpeed(cv::Point2f centre, float radius, float realBallDiameterCentimeter)
+{
+
+        
+    float pixelDiameter = radius * 2.0f;
+    
+    float CentimetersPerPixel = realBallDiameterCentimeter / pixelDiameter;
+    
+    double currentTime = cv::getTickCount() / cv::getTickFrequency();
+
+    if (previous_cx >= 0 && previous_cy >= 0)
+    {
+        // get change in position
+        float dx = centre.x - previous_cx;
+        float dy = centre.y - previous_cy;
+        
+        // euclidean distance formual 2d 
+        float pixelDistance = sqrt((dx * dx) + (dy * dy));
+        
+        if (pixelDistance <= 1.0f)
+        {
+            speed = 0.0f; 
+            return;
+        }
+        
+        // get how many pixel is one cm
+        float distanceCentimeters = pixelDistance * CentimetersPerPixel;
+        float elapsedTime = currentTime - PrevTime;
+        
+        if (elapsedTime > 0.0f)
+        {
+            // v = d/t
+            speed = distanceCentimeters / elapsedTime;
+            UE_LOG(LogTemp, Warning,TEXT("Speed: %.2f cm/s | Diameter(px): %.2f"),speed,pixelDiameter);
+
+            
+        }
+    }
+    
+    previous_cx = centre.x;
+    previous_cy = centre.y; 
+    PrevTime = currentTime;
 }
 
 void AOpenCVManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
