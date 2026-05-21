@@ -11,10 +11,12 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
 #include "PostOpenCVHeaders.h"
+#include <opencv2/opencv.hpp>
 
 #include "OpenCVManager.generated.h"
 
 UCLASS()
+
 class FIFFAGAME_API AOpenCVManager : public AActor
 {
 	GENERATED_BODY()
@@ -49,8 +51,26 @@ private:
 	int previous_cy =  -1;
 	double PrevTime = 0.0;
 	float speed = 0.0f;
+	const float REALBALLDIAMETERCENTIMETER = 6.0f;
 	
-	void trackBallSpeed(cv::Point2f centre,float radius, float realBallDiameterCentimeter);  
+	cv::Mat cameraMatrix = (cv::Mat_<double>(3,3) <<
+	1400, 0, 960,
+	0, 1400, 540,
+	0, 0, 1);
+	
+	cv::Mat distCoeffs =
+	cv::Mat::zeros(1,5,CV_64F);
+	
+	cv::Mat newCameraMatrix;
+	
+	FVector3d previousPosition;
+	bool bHasPrevious3DPosition = false;
+	
+	void trackBallSpeed(cv::Point2f centre,float radius, float realBallDiameterCentimeter); 
+	float calculateSpeed(FVector3d currentPos, FVector3d prevPos,float DeltaTime); 
+	float DistanceFromCamera(cv::Point2f centre,float radius);
+	FVector3d calculate3dPosition(cv::Point2f centre,float radius);
+	FVector OpenCVToUnreal(const FVector3d& camPos);
 	
 	//LATER BRINGS
 	//Speed Vector

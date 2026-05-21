@@ -18,7 +18,12 @@ void AOpenCVManager::BeginPlay()
     
     Camera.open(0);
     //Camera2.open(1);
-    
+    newCameraMatrix = cv::getOptimalNewCameraMatrix(
+      cameraMatrix,
+      distCoeffs,
+      cv::Size(1920, 1080),
+      1.0
+  );
     if (Camera.isOpened())
     {
         UE_LOG(LogTemp, Warning, TEXT("Camera is Opened"));
@@ -26,6 +31,7 @@ void AOpenCVManager::BeginPlay()
         Camera.set(cv::CAP_PROP_FRAME_WIDTH, 1920); //My Webcam defaults it as 1270
         Camera.set(cv::CAP_PROP_FRAME_HEIGHT, 1080); //720
         Camera.set(cv::CAP_PROP_FPS, 60); //My webcam defaulted to 30 fps
+       
     }
     else
     {
@@ -46,21 +52,56 @@ void AOpenCVManager::BeginPlay()
 // Called every frame
 void AOpenCVManager::Tick(float DeltaTime)
 {
-    Super::Tick(DeltaTime);
-    Camera >> Frame;
+    double currentTime =
+    (double)cv::getTickCount()
+    / cv::getTickFrequency();
+    
+    
+     float deltaTime = currentTime - PrevTime;
+  //  Camera >> Frame;
     Camera2 >> Frame2;
+    
+    
     
     if (Camera.read(Frame))
     {
+    cv::Mat UndistortedFrame;
+    
+        cv::undistort(
+       Frame,
+       UndistortedFrame,
+       cameraMatrix,
+       distCoeffs,
+       newCameraMatrix
+   );
         cv::Point2f center;
         float radius;
         
-        if (DetectBall(Frame, center, radius))
+        if (DetectBall(UndistortedFrame, center, radius))
         {
             UE_LOG(LogTemp, Warning,
                 TEXT("Camera1 ball detected at: %f, %f | Radius: %f"), center.x, center.y, radius);
-            
-            trackBallSpeed(center, radius,22.8f);
+            FVector3d camPos = calculate3dPosition(center, radius);
+            FVector worldPos = OpenCVToUnreal(camPos);
+            UE_LOG(LogTemp, Warning,
+            TEXT("Camera1 ball REAL Position at: %f, %f, %f "), camPos.X,camPos.Y,camPos.Z);
+            if(bHasPrevious3DPosition)
+            {
+                speed = calculateSpeed(
+                    camPos,
+                    previousPosition,
+                    deltaTime
+                );
+
+                UE_LOG(LogTemp, Warning,
+                    TEXT("3D Speed: %.2f cm/s"),
+                    speed);
+                
+            }
+           // trackBallSpeed(center, radius,22.8f);
+        previousPosition = camPos;
+            bHasPrevious3DPosition = true;
+       
         }
     }
     
@@ -82,6 +123,7 @@ void AOpenCVManager::Tick(float DeltaTime)
     //UE_LOG(LogTemp, Warning,
     //TEXT("Frame: %d x %d & %f fps"),
     //Frame.cols, Frame.rows, Camera.get(cv::CAP_PROP_FPS));
+    PrevTime = currentTime;
 }
 
 bool AOpenCVManager::DetectBall(cv::Mat& input, cv::Point2f& outCenter, float& outRadius)
@@ -159,7 +201,6 @@ void AOpenCVManager::trackBallSpeed(cv::Point2f centre, float radius, float real
 
         
     float pixelDiameter = radius * 2.0f;
-    
     float CentimetersPerPixel = realBallDiameterCentimeter / pixelDiameter;
     
     double currentTime = cv::getTickCount() / cv::getTickFrequency();
@@ -170,7 +211,7 @@ void AOpenCVManager::trackBallSpeed(cv::Point2f centre, float radius, float real
         float dx = centre.x - previous_cx;
         float dy = centre.y - previous_cy;
         
-        // euclidean distance formual 2d 
+        // euclidean distance formula 2d 
         float pixelDistance = sqrt((dx * dx) + (dy * dy));
         
         if (pixelDistance <= 1.0f)
@@ -187,9 +228,9 @@ void AOpenCVManager::trackBallSpeed(cv::Point2f centre, float radius, float real
         {
             // v = d/t
             speed = distanceCentimeters / elapsedTime;
-            UE_LOG(LogTemp, Warning,TEXT("Speed: %.2f cm/s | Diameter(px): %.2f"),speed,pixelDiameter);
+            UE_LOG(LogTemp, Warning,TEXT("Speed: %.2f cm/s | Diameter(px): %.2f"),speed, pixelDiameter);
 
-            
+               
         }
     }
     
@@ -198,6 +239,63 @@ void AOpenCVManager::trackBallSpeed(cv::Point2f centre, float radius, float real
     PrevTime = currentTime;
 }
 
+float AOpenCVManager::calculateSpeed(FVector3d currentPos, FVector3d prevPos, float DeltaTime)
+{
+    float dx = currentPos.X - prevPos.X;
+    float dy = currentPos.Y - prevPos.Y;
+    float dz = currentPos.Z - prevPos.Z;
+
+    float distance =
+        sqrt(dx*dx + dy*dy + dz*dz);
+
+    speed = distance /  DeltaTime;
+    
+    return speed; 
+}
+
+float AOpenCVManager::DistanceFromCamera(cv::Point2f centre, float radius)
+{
+    float focalLength = 1400.0f;
+
+    float pixelDiameter = radius * 2.0f;
+
+    float distanceCM =
+        (focalLength * REALBALLDIAMETERCENTIMETER) // 22.8 is real ball diameter in cms
+        / pixelDiameter;
+    
+    return distanceCM; 
+}
+
+FVector3d AOpenCVManager::calculate3dPosition(cv::Point2f centre, float radius)
+{
+    float fx = newCameraMatrix.at<double>(0,0);
+    float fy = newCameraMatrix.at<double>(1,1);
+    float cx = newCameraMatrix.at<double>(0,2);
+    float cy = newCameraMatrix.at<double>(1,2);
+
+    float pixelDiameter = radius * 2.0f;
+
+    float Z =
+        (fx * REALBALLDIAMETERCENTIMETER)
+        / pixelDiameter;
+
+    float X =
+        ((centre.x - cx) * Z) / (fx);
+
+    float Y =
+        ((centre.y - cy) * Z) / (fy);
+    
+    return FVector3d(X, Y, Z);  
+ 
+}
+FVector AOpenCVManager::OpenCVToUnreal(const FVector3d& camPos)
+{
+    return FVector(
+        camPos.Z,   // OpenCV Z → Unreal X (forward)
+        camPos.X,   // OpenCV X → Unreal Y (right)
+        -camPos.Y   // OpenCV Y → Unreal Z (up, flipped)
+    );
+}
 void AOpenCVManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     if (Camera.isOpened())
