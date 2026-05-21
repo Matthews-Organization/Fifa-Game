@@ -307,3 +307,35 @@ void AOpenCVManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
+
+//this function finds the position of the center of the ball in irl camera space
+//axes: x is right, y is up, z is the direction the camera is looking
+//to convert to unreal coords, swizzle xyz to yzx 
+FVector3d GetIRLCameraSpacePosition(FVector2d ball_center_position_in_screen_space, float ball_diameter_in_pixels,
+    								FVector2d camera_resolution, float camera_fov_along_x) {
+
+    float ball_irl_radius = REALBALLDIAMETERCENTIMETER/2.0f;
+
+    float ball_size_angle_percent = ball_diameter_in_pixels/camera_resolution.X;
+    float ball_size_angle = ball_size_angle_percent*camera_fov_along_x;
+    float ball_dist = ball_irl_radius/sin(ball_size_angle/2.0f);
+
+    FVector2d ball_pixel_pos_relative_to_center = ball_center_position_in_screen_space-(camera_resolution/2.0f);
+
+    float ball_pos_angle_percent = ball_pixel_pos_relative_to_center.Length()/camera_resolution.X;
+    float ball_pos_angle = ball_pos_angle_percent*camera_fov_along_x;
+    float ball_z_dist = ball_dist/sin(ball_pos_angle);
+
+    float ball_x_pos_angle_percent = ball_pixel_pos_relative_to_center.X/camera_resolution.X;
+    float ball_x_pos_angle = ball_x_pos_angle_percent*camera_fov_along_x;
+    float ball_x_dist = ball_dist/cos(ball_x_pos_angle);
+
+    float camera_fov_along_y = camera_fov_along_x*camera_resolution.Y/camera_resolution.X;
+    float ball_y_pos_angle_percent = ball_pixel_pos_relative_to_center.Y/camera_resolution.Y;
+    float ball_y_pos_angle = ball_y_pos_angle_percent*camera_fov_along_y;
+    float ball_y_dist = ball_dist/cos(ball_y_pos_angle);
+
+    FVector3d ball_irl_camera_space_pos = FVector3d(ball_x_dist, -ball_y_dist, ball_z_dist);
+    
+    return ball_irl_camera_space_pos;
+}

@@ -71,7 +71,13 @@ private:
 	float DistanceFromCamera(cv::Point2f centre,float radius);
 	FVector3d calculate3dPosition(cv::Point2f centre,float radius);
 	FVector OpenCVToUnreal(const FVector3d& camPos);
-	
+
+	//this function finds the position of the center of the ball in irl camera space
+	//axes: x is right, y is up, z is the direction the camera is looking
+	//to convert to unreal coords, swizzle xyz to yzx 
+	FVector3d GetIRLCameraSpacePosition(FVector2d ball_center_position_in_screen_space, float ball_diameter_in_pixels, 
+										FVector2d camera_resolution, float camera_fov_along_x);
+
 	//LATER BRINGS
 	//Speed Vector
 };
