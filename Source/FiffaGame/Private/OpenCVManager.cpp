@@ -339,3 +339,109 @@ FVector3d AOpenCVManager::GetIRLCameraSpacePosition(FVector2d ball_center_positi
     
     return ball_irl_camera_space_pos;
 }
+
+FVector3d AOpenCVManager::GetInitialVelocityFromDataset(std::vector<float> timestamps, std::vector<FVector3d> positions) {
+
+    if (timestamps.size() != positions.size()) {
+        UE_LOG(LogTemp, Warning, TEXT("timestamp and position vectors passed into GetInitialVelocityFromDataset() do not have the same size"));
+    }
+
+    /*
+    find parabola of best fit using least squares
+    for each pair of (t, xyz), find:
+    - sum(xyz)
+    - sum(t*xyz)
+    - sum(t^2*xyz)
+    - sum(t)
+    - sum(t^2)
+    - sum(t^3)
+    - sum(t^4)
+    - number of pairs (n)
+    */
+    float x, tx, t2x,
+          y, ty, t2y,
+          z, tz, t2z,
+          t, t2, t3, t4,
+          n = std::min(timestamps.size(), positions.size());
+    for (int i = 0; i < n; i++) {
+        x   += positions[i].X;
+        tx  += timestamps[i] * positions[i].X;
+        t2x += timestamps[i] * timestamps[i] * positions[i].X;
+        y   += positions[i].Y;
+        ty  += timestamps[i] * positions[i].Y;
+        t2y += timestamps[i] * timestamps[i] * positions[i].Y;
+        z   += positions[i].Z;
+        tz  += timestamps[i] * positions[i].Z;
+        t2z += timestamps[i] * timestamps[i] * positions[i].Z;
+        t   += timestamps[i];
+        t2  += timestamps[i] * timestamps[i];
+        t3  += timestamps[i] * timestamps[i] * timestamps[i];
+        t4  += timestamps[i] * timestamps[i] * timestamps[i] * timestamps[i];
+    }
+
+    /*
+    plug those coefficients into a 3x4 matrix
+    [sum(t^4) sum(t^3) sum(t^2) sum(t^2*xyz)]
+    [sum(t^3) sum(t^2) sum(t)   sum(t*xyz)  ] 
+    [sum(t^2) sum(t)   n        sum(xyz)    ]
+    
+    turn that matrix into reduced row echelon form
+    should look something like this
+    [1 0 0 a]
+    [0 1 0 b]
+    [0 0 1 c]
+    ideally you'd just do it once, but unreal doesn't have a 3x6 matrix or 6d vector class
+    instead i'm just doing it for x, y, and z separately
+    */
+    FMatrix3x4 mx{
+        t4, t3, t2, t2x,
+        t3, t2, t , tx ,
+        t2, t , n , x  };
+    FMatrix3x4 my{
+        t4, t3, t2, t2y,
+        t3, t2, t , ty ,
+        t2, t , n , y  };
+    FMatrix3x4 mz{
+        t4, t3, t2, t2z,
+        t3, t2, t , tz ,
+        t2, t , n , z  };
+
+    mx = ConvertToRREF(mx);
+    my = ConvertToRREF(my);
+    mz = ConvertToRREF(mz);
+
+    //plug resulting values into pos = a*t^2 + b*t + c to get the quadratic line of best fit
+    //plug the first timestamp into this line to get the initial velocity
+    FVector3d a{mx.M[0][3], my.M[0][3], mz.M[0][3]};
+    FVector3d b{mx.M[1][3], my.M[1][3], mz.M[1][3]};
+    FVector3d c{mx.M[2][3], my.M[2][3], mz.M[2][3]};
+    float t0 = timestamps[0];
+    FVector3d v0 = a*t0*t0 + b*t0 + c;
+
+    return v0;
+}
+
+FMatrix3x4 AOpenCVManager::ConvertToRREF(FMatrix3x4 m) {
+
+    FVector4d r0 = FVector4d(m.M[0][0], m.M[0][1], m.M[0][2], m.M[0][3]);
+    FVector4d r1 = FVector4d(m.M[1][0], m.M[1][1], m.M[2][2], m.M[1][3]);
+    FVector4d r2 = FVector4d(m.M[2][0], m.M[2][1], m.M[2][2], m.M[2][3]);
+
+    r0 /= r0.X;
+    r1 -= r1.X*r0;
+    r2 -= r2.X*r0;
+    r1 /= r1.Y;
+    r2 -= r2.Y*r1;
+    r0 -= r0.Y*r1;
+    r2 /= r2.Z;
+    r0 -= r0.Z*r2;
+    r1 -= r1.Z*r2;
+
+    FMatrix3x4 m2{};
+    // ugh
+    FMemory::Memcpy(&m2.M[0], &r0, sizeof(float) * 4);
+    FMemory::Memcpy(&m2.M[1], &r1, sizeof(float) * 4);
+    FMemory::Memcpy(&m2.M[2], &r2, sizeof(float) * 4);
+
+    return m2;
+}

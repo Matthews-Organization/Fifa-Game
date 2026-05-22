@@ -12,6 +12,8 @@
 #include <opencv2/videoio.hpp>
 #include "PostOpenCVHeaders.h"
 #include <opencv2/opencv.hpp>
+#include "Math/Matrix.h"
+#include "Matrix3x4.h"
 
 #include "OpenCVManager.generated.h"
 
@@ -77,6 +79,11 @@ private:
 	//to convert to unreal coords, swizzle xyz to yzx 
 	FVector3d GetIRLCameraSpacePosition(FVector2d ball_center_position_in_screen_space, float ball_diameter_in_pixels, 
 										FVector2d camera_resolution, float camera_fov_along_x);
+	//this function finds the initial velocity of the ball from a list of timestamps and a list of positions at those timestamps
+	FVector3d GetInitialVelocityFromDataset(std::vector<float> timestamps, std::vector<FVector3d> positions);
+	//converts a 3x4 matrix to reduced row echelon form.
+	//helper function for GetInitialVelocityFromDataset()
+	FMatrix3x4 ConvertToRREF(FMatrix3x4 m);
 
 	//LATER BRINGS
 	//Speed Vector
