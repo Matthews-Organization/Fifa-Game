@@ -311,8 +311,8 @@ void AOpenCVManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 //this function finds the position of the center of the ball in irl camera space
 //axes: x is right, y is up, z is the direction the camera is looking
 //to convert to unreal coords, swizzle xyz to yzx 
-FVector3d GetIRLCameraSpacePosition(FVector2d ball_center_position_in_screen_space, float ball_diameter_in_pixels,
-    								FVector2d camera_resolution, float camera_fov_along_x) {
+FVector3d AOpenCVManager::GetIRLCameraSpacePosition(FVector2d ball_center_position_in_screen_space, float ball_diameter_in_pixels,
+    								                FVector2d camera_resolution, float camera_fov_along_x) {
 
     float ball_irl_radius = REALBALLDIAMETERCENTIMETER/2.0f;
 
