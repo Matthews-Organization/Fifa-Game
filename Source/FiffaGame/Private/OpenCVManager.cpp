@@ -48,8 +48,8 @@ void AOpenCVManager::BeginPlay()
     //    UE_LOG(LogTemp, Warning, TEXT("Camera is Not Opened"));
     //}
     
-    timestamps.fill(0);
-    positions.fill(FVector3d(0,0,0));
+    tracked_timestamps.fill(0);
+    tracked_positions.fill(FVector3d(0,0,0));
 
 }
 
