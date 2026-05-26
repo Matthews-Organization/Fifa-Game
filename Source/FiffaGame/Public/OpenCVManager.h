@@ -73,6 +73,9 @@ private:
 	
 	FVector3d previousPosition;
 	bool bHasPrevious3DPosition = false;
+
+	std::array<float, 20> tracked_timestamps;
+	std::array<FVector3d, 20> tracked_positions;
 	
 	void trackBallSpeed(cv::Point2f centre,float radius, float realBallDiameterCentimeter); 
 	float calculateSpeed(FVector3d currentPos, FVector3d prevPos,float DeltaTime); 

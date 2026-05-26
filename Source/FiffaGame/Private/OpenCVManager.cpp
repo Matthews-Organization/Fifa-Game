@@ -48,6 +48,9 @@ void AOpenCVManager::BeginPlay()
     //    UE_LOG(LogTemp, Warning, TEXT("Camera is Not Opened"));
     //}
     
+    timestamps.fill(0);
+    positions.fill(FVector3d(0,0,0));
+
 }
 
 // Called every frame
@@ -84,6 +87,18 @@ void AOpenCVManager::Tick(float DeltaTime)
                 TEXT("Camera1 ball detected at: %f, %f | Radius: %f"), center.x, center.y, radius);
             FVector3d camPos = calculate3dPosition(center, radius);
             FVector3d IRL = GetIRLCameraSpacePosition(FVector2d(center.x, center.y), radius * 2, FVector2d(1280, 720), 1.57);
+
+            std::move(tracked_timestamps.begin() + 1, tracked_timestamps.end(), tracked_timestamps.begin());
+            std::move(tracked_positions.begin() + 1, tracked_positions.end(), tracked_positions.begin());
+            tracked_timestamps.back() = currentTime;
+            tracked_positions.back() = IRL;
+
+            FVector3d irl_velocity = GetInitialVelocityFromDataset(
+                std::vector(tracked_timestamps.begin(), tracked_timestamps.end()), 
+                std::vector(tracked_positions.begin(), tracked_positions.end()));
+
+            UE_LOG(LogTemp, Warning,
+                TEXT("Camera1 ball irl velocity: (%f, %f, %f) | mag: %f"), irl_velocity.X, irl_velocity.Y, irl_velocity.Z, irl_velocity.Length());
             
             FVector worldPos = OpenCVToUnreal(camPos);
             //UE_LOG(LogTemp, Warning,
@@ -459,7 +474,27 @@ FVector3d AOpenCVManager::GetInitialVelocityFromDataset(std::vector<float> times
     float t0 = timestamps[0];
     FVector3d v0 = a*t0*t0 + b*t0 + c;
 
-    return v0;
+    //calculate the r^2 value to see if it actually fits the parabola well
+    float rss = 0; //residual sum of squares
+    float tss = 0; //total sum of squares
+    FVector3d avg_pos(0,0,0); //average actual position
+    for (int i = 0; i < n; i++) {
+        avg_pos += positions[i]; }
+    avg_pos /= n;
+
+    for (int i = 0; i < n; i++) {
+        float ti = timestamps[i];
+        FVector3d fit_i = a*ti*ti + b*ti + c;
+        FVector3d pos_i = positions[i];
+        FVector3d var1 = pos_i - fit_i;
+        FVector3d var2 = pos_i - avg_pos;
+        rss += var1.Dot(var1);
+        tss += var2.Dot(var2);
+    }
+    float r_sq = 1 - (rss/tss);
+    float accuracy_threshold = 0.95f;
+
+    return (r_sq >= accuracy_threshold)? v0 : FVector3d::Zero();
 }
 
 FMatrix3x4 AOpenCVManager::ConvertToRREF(FMatrix3x4 m) {
