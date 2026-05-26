@@ -358,10 +358,10 @@ FVector3d AOpenCVManager::GetInitialVelocityFromDataset(std::vector<float> times
     - sum(t^4)
     - number of pairs (n)
     */
-    float x, tx, t2x,
-          y, ty, t2y,
-          z, tz, t2z,
-          t, t2, t3, t4,
+    float x = 0, tx = 0, t2x = 0,
+          y = 0, ty = 0, t2y = 0,
+          z = 0, tz = 0, t2z = 0,
+          t = 0, t2 = 0, t3 = 0, t4 = 0,
           n = std::min(timestamps.size(), positions.size());
     for (int i = 0; i < n; i++) {
         x   += positions[i].X;
