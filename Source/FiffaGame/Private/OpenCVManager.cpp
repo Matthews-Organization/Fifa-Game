@@ -18,25 +18,26 @@ void AOpenCVManager::BeginPlay()
     
     Camera.open(0);
     //Camera2.open(1);
-    newCameraMatrix = cv::getOptimalNewCameraMatrix(
-      cameraMatrix,
-      distCoeffs,
-      cv::Size(1920, 1080),
-      1.0
-  );
+    
     if (Camera.isOpened())
     {
         UE_LOG(LogTemp, Warning, TEXT("Camera is Opened"));
         
-        Camera.set(cv::CAP_PROP_FRAME_WIDTH, 1920); //My Webcam defaults it as 1270
+        Camera.set(cv::CAP_PROP_FRAME_WIDTH, 1920);  //My Webcam defaults it as 1280
         Camera.set(cv::CAP_PROP_FRAME_HEIGHT, 1080); //720
-        Camera.set(cv::CAP_PROP_FPS, 60); //My webcam defaulted to 30 fps
-       
+        Camera.set(cv::CAP_PROP_FPS, 60);            //My webcam defaulted to 30 fps
     }
     else
     {
         UE_LOG(LogTemp, Warning, TEXT("Camera is Not Opened"));
     }
+    
+    newCameraMatrix = cv::getOptimalNewCameraMatrix(
+      cameraMatrix,
+      distCoeffs,
+      cv::Size(Camera.get(cv::CAP_PROP_FRAME_WIDTH), Camera.get(cv::CAP_PROP_FRAME_HEIGHT)),
+      1.0
+    );
     
     //if (Camera2.isOpened())
     //{
@@ -65,7 +66,7 @@ void AOpenCVManager::Tick(float DeltaTime)
     
     if (Camera.read(Frame))
     {
-    cv::Mat UndistortedFrame;
+        cv::Mat UndistortedFrame;
     
         cv::undistort(
        Frame,
@@ -73,7 +74,7 @@ void AOpenCVManager::Tick(float DeltaTime)
        cameraMatrix,
        distCoeffs,
        newCameraMatrix
-   );
+        );
         cv::Point2f center;
         float radius;
         
@@ -82,9 +83,13 @@ void AOpenCVManager::Tick(float DeltaTime)
             UE_LOG(LogTemp, Warning,
                 TEXT("Camera1 ball detected at: %f, %f | Radius: %f"), center.x, center.y, radius);
             FVector3d camPos = calculate3dPosition(center, radius);
+            FVector3d IRL = GetIRLCameraSpacePosition(FVector2d(center.x, center.y), radius * 2, FVector2d(1280, 720), 1.57);
+            
             FVector worldPos = OpenCVToUnreal(camPos);
+            //UE_LOG(LogTemp, Warning,
+            //TEXT("Camera1 ball REAL Position at: %f, %f, %f "), camPos.X,camPos.Y,camPos.Z);
             UE_LOG(LogTemp, Warning,
-            TEXT("Camera1 ball REAL Position at: %f, %f, %f "), camPos.X,camPos.Y,camPos.Z);
+            TEXT("Camera1 ball IRL Pos at: %f, %f, %f "), IRL.X,IRL.Y,IRL.Z);
             if(bHasPrevious3DPosition)
             {
                 speed = calculateSpeed(
@@ -142,7 +147,8 @@ bool AOpenCVManager::DetectBall(cv::Mat& input, cv::Point2f& outCenter, float& o
 
     cv::Mat mask;
     cv::inRange(HSV, lower, upper, mask);
-
+    
+    
     //close broken blobs in the frame
     cv::morphologyEx(mask, mask, cv::MORPH_CLOSE, cv::Mat(), cv::Point(-1, -1), 2);
 
@@ -150,6 +156,8 @@ bool AOpenCVManager::DetectBall(cv::Mat& input, cv::Point2f& outCenter, float& o
     std::vector<std::vector<cv::Point>> contours;
     cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
+    MaskTexture = CreateTextureFromMat(mask);
+    
     //Find best shape
     if (!contours.empty())
     {
@@ -274,7 +282,8 @@ FVector3d AOpenCVManager::calculate3dPosition(cv::Point2f centre, float radius)
     float cy = newCameraMatrix.at<double>(1,2);
 
     float pixelDiameter = radius * 2.0f;
-
+    if (pixelDiameter <= 1.0f)
+        return FVector3d::ZeroVector;
     float Z =
         (fx * REALBALLDIAMETERCENTIMETER)
         / pixelDiameter;
@@ -307,6 +316,38 @@ void AOpenCVManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
+UTexture2D* AOpenCVManager::CreateTextureFromMat(const cv::Mat& Mat)
+{
+    cv::Mat RGBA;
+
+    if (Mat.channels() == 1)
+    {
+        cv::cvtColor(Mat, RGBA, cv::COLOR_GRAY2BGRA);
+    }
+    else
+    {
+        cv::cvtColor(Mat, RGBA, cv::COLOR_BGR2BGRA);
+    }
+
+    UTexture2D* Texture = UTexture2D::CreateTransient(
+        RGBA.cols,
+        RGBA.rows,
+        PF_B8G8R8A8
+    );
+
+    void* TextureData = Texture->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
+    FMemory::Memcpy(TextureData, RGBA.data, RGBA.total() * RGBA.elemSize());
+    Texture->GetPlatformData()->Mips[0].BulkData.Unlock();
+
+    Texture->UpdateResource();
+
+    return Texture;
+}
+
+UTexture2D* AOpenCVManager::GetMaskTexture()
+{
+    return MaskTexture;
+}
 
 //this function finds the position of the center of the ball in irl camera space
 //axes: x is right, y is up, z is the direction the camera is looking

@@ -36,6 +36,12 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
+	UPROPERTY(BlueprintReadOnly, Category="OpenCV")
+	UTexture2D* MaskTexture;
+	
+	UFUNCTION(BlueprintCallable, Category="OpenCV")
+	UTexture2D* GetMaskTexture();
 private:
 	//Our Two Cams
 	cv::VideoCapture Camera;
@@ -47,13 +53,13 @@ private:
 	
 
 	bool DetectBall(cv::Mat& input, cv::Point2f& outCenter, float& outRadius);
-	
+	UTexture2D* CreateTextureFromMat(const cv::Mat& Mat);
 	
 	int previous_cx = -1;
 	int previous_cy =  -1;
 	double PrevTime = 0.0;
 	float speed = 0.0f;
-	const float REALBALLDIAMETERCENTIMETER = 6.0f;
+	const float REALBALLDIAMETERCENTIMETER = 17.8f;
 	
 	cv::Mat cameraMatrix = (cv::Mat_<double>(3,3) <<
 	1400, 0, 960,
