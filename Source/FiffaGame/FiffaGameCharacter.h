@@ -89,6 +89,9 @@ public:
 
 	/** Returns first person camera component **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
-
+	
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void SetBallVelocity(const FVector& BallVelocity) ;
 };
 

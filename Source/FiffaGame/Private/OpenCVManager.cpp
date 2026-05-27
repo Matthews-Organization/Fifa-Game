@@ -2,7 +2,7 @@
 
 
 #include "OpenCVManager.h"
-
+#include "Kismet/GameplayStatics.h"
 // Sets default values
 AOpenCVManager::AOpenCVManager()
 {
@@ -50,6 +50,8 @@ void AOpenCVManager::BeginPlay()
     
     tracked_timestamps.fill(0);
     tracked_positions.fill(FVector3d(0,0,0));
+    
+    CharacterInstance = Cast<AFiffaGameCharacter>(UGameplayStatics::GetActorOfClass(GetWorld(), AFiffaGameCharacter::StaticClass()));
 
 }
 
@@ -96,7 +98,13 @@ void AOpenCVManager::Tick(float DeltaTime)
             FVector3d irl_velocity = GetInitialVelocityFromDataset(
                 std::vector(tracked_timestamps.begin(), tracked_timestamps.end()), 
                 std::vector(tracked_positions.begin(), tracked_positions.end()));
-
+            
+                if (CharacterInstance != nullptr)
+                {
+                    CharacterInstance->SetBallVelocity(irl_velocity);
+                    
+                }
+            
             UE_LOG(LogTemp, Warning,
                 TEXT("Camera1 ball irl velocity: (%f, %f, %f) | mag: %f"), irl_velocity.X, irl_velocity.Y, irl_velocity.Z, irl_velocity.Length());
             

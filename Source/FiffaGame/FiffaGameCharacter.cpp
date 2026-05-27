@@ -118,3 +118,4 @@ void AFiffaGameCharacter::DoJumpEnd()
 	// pass StopJumping to the character
 	StopJumping();
 }
+

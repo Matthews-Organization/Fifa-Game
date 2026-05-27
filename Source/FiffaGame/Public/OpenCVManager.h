@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-
+#include "FiffaGameCharacter.h"
 #include "PreOpenCVHeaders.h"
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -51,7 +51,8 @@ private:
 	cv::Mat Frame2;
 	
 	
-
+	AFiffaGameCharacter* CharacterInstance;
+	
 	bool DetectBall(cv::Mat& input, cv::Point2f& outCenter, float& outRadius);
 	UTexture2D* CreateTextureFromMat(const cv::Mat& Mat);
 	
