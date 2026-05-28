@@ -180,7 +180,7 @@ bool AOpenCVManager::DetectBall(cv::Mat& input, cv::Point2f& outCenter, float& o
     cv::findContours(mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
     MaskTexture = CreateTextureFromMat(mask);
-    
+
     //Find best shape
     if (!contours.empty())
     {
@@ -475,12 +475,14 @@ FVector3d AOpenCVManager::GetInitialVelocityFromDataset(std::vector<float> times
     mz = ConvertToRREF(mz);
 
     //plug resulting values into pos = a*t^2 + b*t + c to get the quadratic line of best fit
-    //plug the first timestamp into this line to get the initial velocity
+    //plug the first timestamp into the derivative of this line (2*a*t + b) to get the tangent line's direction
+    //that vector should be the initial velocity
     FVector3d a{mx.M[0][3], my.M[0][3], mz.M[0][3]};
     FVector3d b{mx.M[1][3], my.M[1][3], mz.M[1][3]};
     FVector3d c{mx.M[2][3], my.M[2][3], mz.M[2][3]};
     float t0 = timestamps[0];
-    FVector3d v0 = a*t0*t0 + b*t0 + c;
+    FVector3d p0 = a*t0*t0 + b*t0 + c;
+    FVector3d v0 = 2.0f*a*t0 + b;
 
     //calculate the r^2 value to see if it actually fits the parabola well
     float rss = 0; //residual sum of squares
@@ -500,7 +502,7 @@ FVector3d AOpenCVManager::GetInitialVelocityFromDataset(std::vector<float> times
         tss += var2.Dot(var2);
     }
     float r_sq = 1 - (rss/tss);
-    float accuracy_threshold = 0.95f;
+    float accuracy_threshold = 0.80f;
 
     return (r_sq >= accuracy_threshold)? v0 : FVector3d::Zero();
 }
